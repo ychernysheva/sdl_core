@@ -1112,6 +1112,16 @@ TEST_F(MessageHelperTest, ExtractWindowIdFromSmartObject_FromWrongType) {
             MessageHelper::ExtractWindowIdFromSmartObject(message));
 }
 
+TEST_F(MessageHelperTest,
+       VehicleDataMapping_ContainsHandsOffSteeringMapping_SUCCESS) {
+  const auto& vehicle_data_mapping = MessageHelper::vehicle_data();
+  const auto& hands_off_steering_mapping = vehicle_data_mapping.find(
+      application_manager::strings::hands_off_steering);
+  ASSERT_NE(hands_off_steering_mapping, vehicle_data_mapping.end());
+  EXPECT_EQ(mobile_apis::VehicleDataType::VEHICLEDATA_HANDSOFFSTEERING,
+            hands_off_steering_mapping->second);
+}
+
 }  // namespace application_manager_test
 }  // namespace components
 }  // namespace test
