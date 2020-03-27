@@ -3,4 +3,5 @@
 	url = https://github.com/smartdevicelink/jsoncpp.git
 [submodule "tools/rpc_spec"]
 	path = tools/rpc_spec
-	url = https://github.com/smartdevicelink/rpc_spec.git
+	url = https://github.com/ychernysheva/rpc_spec.git
+	branch = feature/new_vehicle_data_hands_off_steering
