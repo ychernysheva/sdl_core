@@ -154,6 +154,25 @@ void VehicleInfoPlugin::UnsubscribeFromRemovedVDItems() {
   application_manager_->GetRPCService().ManageHMICommand(message);
 }
 
+bool IsOtherAppAlreadySubscribedFor(
+    const std::string& ivi_name,
+    application_manager::ApplicationManager& app_mngr,
+    application_manager::Application& current_app) {
+  auto applications = app_mngr.applications();
+
+  for (auto& app : applications.GetData()) {
+    auto& ext = VehicleInfoAppExtension::ExtractVIExtension(*app);
+    if (ext.isSubscribedToVehicleInfo(ivi_name)) {
+      if (app->app_id() == current_app.app_id()) {
+        continue;
+      } else {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 void VehicleInfoPlugin::ProcessResumptionSubscription(
     application_manager::Application& app, VehicleInfoAppExtension& ext) {
   LOG4CXX_AUTO_TRACE(logger_);
@@ -161,21 +180,28 @@ void VehicleInfoPlugin::ProcessResumptionSubscription(
       smart_objects::SmartObject(smart_objects::SmartType_Map);
   msg_params[strings::app_id] = app.app_id();
   const auto& subscriptions = ext.Subscriptions();
+  size_t num_unique_subscriptions = 0;
+
   if (subscriptions.empty()) {
     LOG4CXX_DEBUG(logger_, "No vehicle data to subscribe. Exiting");
     return;
   }
 
-  for (const auto& item : subscriptions) {
-    msg_params[item] = true;
+  for (auto& ivi : subscriptions) {
+    if (!IsOtherAppAlreadySubscribedFor(ivi, *application_manager_, app)) {
+      msg_params[ivi] = true;
+      num_unique_subscriptions++;
+    }
   }
 
-  smart_objects::SmartObjectSPtr request =
-      application_manager::MessageHelper::CreateModuleInfoSO(
-          hmi_apis::FunctionID::VehicleInfo_SubscribeVehicleData,
-          *application_manager_);
-  (*request)[strings::msg_params] = msg_params;
-  application_manager_->GetRPCService().ManageHMICommand(request);
+  if (num_unique_subscriptions > 0) {
+    smart_objects::SmartObjectSPtr request =
+        application_manager::MessageHelper::CreateModuleInfoSO(
+            hmi_apis::FunctionID::VehicleInfo_SubscribeVehicleData,
+            *application_manager_);
+    (*request)[strings::msg_params] = msg_params;
+    application_manager_->GetRPCService().ManageHMICommand(request);
+  }
 }
 
 application_manager::ApplicationSharedPtr FindAppSubscribedToIVI(
